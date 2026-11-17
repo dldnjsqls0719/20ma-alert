@@ -1,11 +1,11 @@
 {
- "name": "20일선 매매 준비 알림",
+ "name": "20일선 알림",
  "short_name": "20일선 알림",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",
- "background_color": "#0f1117",
- "theme_color": "#0f1117",
+ "background_color": "#0E1014",
+ "theme_color": "#121418",
  "icons": [
   {
    "src": "icon-192.png",
