@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>20일선 매매 준비 알림</title>
+<script src="lightweight-charts.standalone.production.js"></script>
+<script>if (!window.LightweightCharts) document.write('<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"><\/script>');</script>
+<style>
+  :root { --bg:#0f1117; --panel:#161a23; --line:#262b36; --text:#e6e8ec; --sub:#9aa1ad;
+          --accent:#e040fb; --warn:#f5c542; --up:#26a69a; --down:#ef5350; --blue:#2962ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font-family:-apple-system, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; }
+  .wrap { max-width:1100px; margin:0 auto; padding:24px 16px 60px; }
+  header { display:flex; flex-wrap:wrap; align-items:baseline; gap:12px; justify-content:space-between; }
+  h1 { font-size:22px; margin:0; }
+  .meta { color:var(--sub); font-size:13px; }
+  .health { display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:600; }
+  .health.ok { background:#123d2f; color:#5fe0b4; } .health.bad { background:#4a1d1d; color:#ff8a80; }
+  .brief { background:linear-gradient(135deg,#1b1630,#161a23); border:1px solid #3a2f5c; border-radius:12px;
+           padding:14px 16px; margin-top:16px; line-height:1.65; font-size:14.5px; }
+  .brief .bt { font-size:12px; color:#c9a6ff; font-weight:600; margin-bottom:6px; letter-spacing:.02em; }
+  .brief p { margin:0 0 6px; } .brief p:last-child { margin:0; color:var(--sub); font-size:13px; }
+  .tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:18px 0 8px; }
+  .tile { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+  .tile .n { font-size:26px; font-weight:700; } .tile .l { color:var(--sub); font-size:12px; margin-top:2px; }
+  .tile.hl { border-color:var(--accent); }
+  h2 { font-size:16px; margin:28px 0 10px; display:flex; align-items:center; gap:8px; }
+  h2 .cnt { color:var(--sub); font-weight:400; font-size:13px; }
+  .empty { color:var(--sub); font-size:14px; padding:14px; background:var(--panel); border:1px dashed var(--line); border-radius:10px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:12px; }
+  .card.new { border-color:var(--accent); }
+  .ct { display:flex; flex-wrap:wrap; align-items:baseline; gap:8px; margin-bottom:8px; }
+  .ct .nm { font-size:17px; font-weight:700; } .ct .cd { color:var(--sub); font-size:13px; }
+  .badge { font-size:11px; padding:2px 8px; border-radius:999px; background:#2a2f3b; color:var(--sub); }
+  .badge.w { background:#3d3315; color:var(--warn); } .badge.s { background:#3a1a40; color:#f3a6ff; }
+  .facts { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:6px 14px; font-size:13px; margin-bottom:10px; }
+  .facts div span { display:block; color:var(--sub); font-size:11px; }
+  .chart { width:100%; height:260px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  th, td { padding:8px 10px; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; }
+  th { color:var(--sub); font-weight:500; background:#1b202b; }
+  td:first-child, th:first-child { text-align:left; }
+  tr.clk { cursor:pointer; } tr.clk:hover td { background:#1d2230; }
+  tr.chartrow td { padding:0 10px 10px; text-align:left; }
+  .pos { color:var(--up); } .neg { color:var(--down); }
+  .warnlist { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:4px 8px; font-size:12px; }
+  .chip b { font-weight:600; } .chip i { color:var(--warn); font-style:normal; margin-left:4px; }
+  details { margin-top:24px; color:var(--sub); font-size:13px; } summary { cursor:pointer; }
+  .scroll { overflow-x:auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><h1>20일선 매매 준비 알림</h1><div class="meta" id="meta"></div></div>
+    <span id="health" class="health"></span>
+  </header>
+  <div class="brief"><div class="bt">오늘의 브리핑</div><div id="brief"></div></div>
+  <div class="tiles" id="tiles"></div>
+
+  <h2>오늘 신규 알림 <span class="cnt" id="c-new"></span></h2>
+  <div id="new"></div>
+
+  <h2>매매 준비 진행 중 <span class="cnt" id="c-sig"></span></h2>
+  <div id="sig"></div>
+
+  <h2>관심종목 (20일선 대기) <span class="cnt" id="c-watch"></span></h2>
+  <div id="watch" class="scroll"></div>
+
+  <h2>오늘 해제 <span class="cnt" id="c-end"></span></h2>
+  <div id="end" class="scroll"></div>
+
+  <h2>오늘 시장경보 종목 (종목정보 파일 기준) <span class="cnt" id="c-warn"></span></h2>
+  <div id="warn" class="warnlist"></div>
+
+  <details>
+    <summary>규칙과 데이터 출처</summary>
+    <p>관심종목 편입: 고가가 직전 15영업일 최저 종가 대비 200% 이상 상승<br>
+       매매 준비 알림: 편입 후 처음으로 종가가 20일선(최근 20일 종가 단순평균) 아래 마감<br>
+       매매 종료(해제): 알림 다음 날부터 장중에 20일선을 돌파(시가 포함), 또는 편입 후 50영업일 경과<br>
+       장중 20일선 돌파 기준가 = 직전 19일 종가 평균 (현재가가 이 값을 넘는 순간 20일선 위로 올라섬)</p>
+    <p>시장경보 종목: 한국투자증권 공개 종목정보 파일 / 일봉: 네이버 시세 (장 마감 후 확정 종가 기준)</p>
+    <div id="errs"></div>
+  </details>
+</div>
+<script>
+const D = {"asof": "2026-11-17", "generated_at": "2026-11-17 22:46", "mode": "", "scanned": 37, "warnings": [], "warned_today": [{"code": "003570", "name": "SNT다이내믹스", "label": "투자주의"}, {"code": "004540", "name": "깨끗한나라", "label": "투자경고"}, {"code": "004870", "name": "티웨이홀딩스", "label": "투자주의"}, {"code": "009140", "name": "케이아이이", "label": "투자주의"}, {"code": "010640", "name": "진양폴리", "label": "투자주의"}, {"code": "012160", "name": "영흥", "label": "투자주의"}, {"code": "025560", "name": "미래산업", "label": "투자주의"}, {"code": "051630", "name": "진양화학", "label": "투자경고"}, {"code": "055490", "name": "테이팩스", "label": "투자주의"}, {"code": "069260", "name": "TKG휴켐스", "label": "투자주의"}, {"code": "092790", "name": "넥스틸", "label": "투자주의"}, {"code": "181710", "name": "NHN", "label": "투자경고"}, {"code": "010280", "name": "아이티센엔텍", "label": "투자주의"}, {"code": "011080", "name": "형지I&C", "label": "투자주의"}, {"code": "020400", "name": "대동금속", "label": "투자경고"}, {"code": "042520", "name": "한스바이오메드", "label": "투자주의"}, {"code": "059100", "name": "아이컴포넌트", "label": "투자주의"}, {"code": "064800", "name": "포니링크", "label": "투자주의"}, {"code": "069510", "name": "에스텍", "label": "투자주의"}, {"code": "089790", "name": "제이티", "label": "투자주의"}, {"code": "091440", "name": "한울소재과학", "label": "투자주의"}, {"code": "179900", "name": "유티아이", "label": "투자주의"}, {"code": "199730", "name": "바이오인프라", "label": "투자경고"}, {"code": "221800", "name": "지구홀딩스", "label": "투자주의"}, {"code": "223250", "name": "드림씨아이에스", "label": "투자주의"}, {"code": "290740", "name": "액트로", "label": "투자주의"}, {"code": "301300", "name": "바이브컴퍼니", "label": "투자경고"}, {"code": "303030", "name": "지니틱스", "label": "투자주의, 경고예고"}, {"code": "345290", "name": "영광와이케이엠씨", "label": "투자주의"}, {"code": "377220", "name": "프롬바이오", "label": "투자주의"}, {"code": "389030", "name": "지니너스", "label": "투자주의"}, {"code": "452430", "name": "사피엔반도체", "label": "투자주의"}, {"code": "487400", "name": "케이앤에스아이앤씨", "label": "투자주의"}], "items": [{"code": "224060", "name": "더코디", "market": "KOSDAQ", "status": "signal", "warn_now": "", "last_date": "2026-11-17", "close": 1917, "ma20": 2571, "gap_to_ma_pct": -25.4, "base_date": "2026-08-25", "base_close": 2860, "entry_date": "2026-09-10", "entry_close": 9890, "entry_ratio": 3.46, "entry_rise_pct": 246, "peak_date": "2026-09-11", "peak_high": 12750, "from_peak_pct": -85.0, "days_since_entry": 44, "days_left": 6, "signal_date": "2026-09-21", "signal_close": 5230, "signal_ma": 5539, "end_date": null, "end_reason": null, "end_price": null, "exit_level_next": 2531, "exit_level_gap_pct": 32.1, "days_since_signal": 37, "signal_from_peak_pct": -59.0, "since_signal_pct": -63.3, "chart": {"bars": [["2026-08-03", 3440, 3675, 3335, 3440], ["2026-08-04", 3440, 3500, 3310, 3445], ["2026-08-05", 3445, 3500, 3375, 3455], ["2026-08-06", 3350, 3545, 3350, 3410], ["2026-08-07", 3410, 3680, 3340, 3360], ["2026-08-10", 3485, 3560, 3360, 3520], ["2026-08-11", 3525, 3695, 3485, 3670], ["2026-08-12", 3640, 3700, 3460, 3515], ["2026-08-13", 3515, 3560, 3255, 3450], ["2026-08-14", 3450, 3520, 3250, 3360], ["2026-08-18", 3360, 3550, 3200, 3230], ["2026-08-19", 3250, 3300, 3010, 3090], ["2026-08-20", 3090, 3380, 3090, 3230], ["2026-08-21", 3210, 3210, 2640, 3075], ["2026-08-24", 3075, 3150, 2885, 2970], ["2026-08-25", 2970, 3060, 2835, 2860], ["2026-08-26", 3000, 3585, 2865, 3315], ["2026-08-27", 3600, 3600, 3190, 3590], ["2026-08-28", 3595, 3850, 3480, 3850], ["2026-08-31", 3885, 3955, 3670, 3870], ["2026-09-01", 3900, 3945, 3800, 3940], ["2026-09-02", 4080, 4080, 3680, 3740], ["2026-09-03", 3740, 3750, 3500, 3660], ["2026-09-04", 3660, 3690, 3430, 3470], ["2026-09-07", 3515, 4510, 3515, 4510], ["2026-09-08", 5860, 5860, 5860, 5860], ["2026-09-09", 7610, 7610, 7610, 7610], ["2026-09-10", 7610, 9890, 7610, 9890], ["2026-09-11", 12750, 12750, 9500, 9890], ["2026-09-14", 9440, 10020, 7730, 7730], ["2026-09-15", 7700, 7890, 6530, 7020], ["2026-09-16", 7020, 8000, 6630, 7430], ["2026-09-17", 7140, 7960, 6920, 7830], ["2026-09-18", 5780, 5940, 5490, 5490], ["2026-09-21", 5450, 6410, 4650, 5230], ["2026-09-22", 5230, 5230, 4060, 4180], ["2026-09-23", 3890, 4650, 3850, 4395], ["2026-09-28", 4395, 5710, 4275, 5390], ["2026-09-29", 5140, 5800, 4770, 4805], ["2026-09-30", 4600, 5400, 4530, 4655], ["2026-10-01", 4880, 4880, 4150, 4320], ["2026-10-02", 4455, 4455, 4105, 4265], ["2026-10-06", 4260, 4260, 4000, 4000], ["2026-10-07", 3320, 3700, 3190, 3365], ["2026-10-08", 3840, 4350, 3605, 3610], ["2026-10-12", 3695, 3775, 3300, 3505], ["2026-10-13", 3505, 3900, 3200, 3900], ["2026-10-14", 4000, 4000, 3400, 3470], ["2026-10-15", 3320, 3380, 3000, 3190], ["2026-10-16", 3250, 3430, 3050, 3395], ["2026-10-19", 3370, 3395, 3085, 3350], ["2026-10-20", 3395, 3455, 3110, 3275], ["2026-10-21", 3245, 3450, 3160, 3330], ["2026-10-22", 3210, 3400, 3150, 3150], ["2026-10-23", 3210, 3400, 3075, 3115], ["2026-10-26", 3160, 3350, 2895, 2920], ["2026-10-27", 2920, 3070, 2625, 2775], ["2026-10-28", 2980, 3400, 2830, 3225], ["2026-10-29", 3075, 3125, 2805, 2860], ["2026-10-30", 2790, 2790, 2560, 2705], ["2026-11-02", 2650, 2890, 2620, 2840], ["2026-11-03", 2820, 2930, 2675, 2690], ["2026-11-04", 2720, 2880, 2560, 2570], ["2026-11-05", 2570, 2570, 2225, 2260], ["2026-11-06", 1852, 2235, 1813, 2120], ["2026-11-09", 2120, 2225, 2040, 2140], ["2026-11-10", 2140, 2265, 2095, 2200], ["2026-11-11", 2200, 2300, 2190, 2250], ["2026-11-12", 2360, 2780, 2155, 2155], ["2026-11-13", 2135, 2350, 2135, 2255], ["2026-11-16", 2255, 2260, 1930, 1951], ["2026-11-17", 1951, 1975, 1817, 1917]], "ma": [["2026-08-03", 4372.0], ["2026-08-04", 4274.2], ["2026-08-05", 4190.0], ["2026-08-06", 4121.0], ["2026-08-07", 4070.0], ["2026-08-10", 3984.5], ["2026-08-11", 3903.5], ["2026-08-12", 3816.8], ["2026-08-13", 3711.8], ["2026-08-14", 3647.8], ["2026-08-18", 3583.0], ["2026-08-19", 3523.0], ["2026-08-20", 3482.5], ["2026-08-21", 3437.2], ["2026-08-24", 3385.0], ["2026-08-25", 3343.8], ["2026-08-26", 3335.5], ["2026-08-27", 3341.0], ["2026-08-28", 3363.8], ["2026-08-31", 3385.2], ["2026-09-01", 3410.2], ["2026-09-02", 3425.0], ["2026-09-03", 3435.2], ["2026-09-04", 3438.2], ["2026-09-07", 3495.8], ["2026-09-08", 3612.8], ["2026-09-09", 3809.8], ["2026-09-10", 4128.5], ["2026-09-11", 4450.5], ["2026-09-14", 4669.0], ["2026-09-15", 4858.5], ["2026-09-16", 5075.5], ["2026-09-17", 5305.5], ["2026-09-18", 5426.2], ["2026-09-21", 5539.2], ["2026-09-22", 5605.2], ["2026-09-23", 5659.2], ["2026-09-28", 5749.2], ["2026-09-29", 5797.0], ["2026-09-30", 5836.2], ["2026-10-01", 5855.2], ["2026-10-02", 5881.5], ["2026-10-06", 5898.5], ["2026-10-07", 5893.2], ["2026-10-08", 5848.2], ["2026-10-12", 5730.5], ["2026-10-13", 5545.0], ["2026-10-14", 5224.0], ["2026-10-15", 4889.0], ["2026-10-16", 4672.2], ["2026-10-19", 4488.8], ["2026-10-20", 4281.0], ["2026-10-21", 4056.0], ["2026-10-22", 3939.0], ["2026-10-23", 3833.2], ["2026-10-26", 3770.2], ["2026-10-27", 3689.2], ["2026-10-28", 3581.0], ["2026-10-29", 3483.8], ["2026-10-30", 3386.2], ["2026-11-02", 3312.2], ["2026-11-03", 3233.5], ["2026-11-04", 3162.0], ["2026-11-05", 3106.8], ["2026-11-06", 3032.2], ["2026-11-09", 2964.0], ["2026-11-10", 2879.0], ["2026-11-11", 2818.0], ["2026-11-12", 2766.2], ["2026-11-13", 2709.2], ["2026-11-16", 2639.3], ["2026-11-17", 2571.4]], "markers": [{"time": "2026-08-25", "pos": "belowBar", "color": "#8a8f98", "shape": "circle", "text": "저점"}, {"time": "2026-09-10", "pos": "belowBar", "color": "#2962ff", "shape": "arrowUp", "text": "편입"}, {"time": "2026-09-11", "pos": "aboveBar", "color": "#f5c542", "shape": "arrowDown", "text": "고점"}, {"time": "2026-09-21", "pos": "belowBar", "color": "#e040fb", "shape": "arrowUp", "text": "알림"}]}}], "errors": [], "counts": {"new_signal": 0, "signal": 1, "watch": 0, "ended_today": 0}, "briefing": ["2026-11-17 종가 기준, 오늘 새로 뜬 매매 준비 알림은 없습니다.", "매매 준비 진행 중인 종목은 1개입니다: 더코디(알림 09-21, 알림가 대비 -63.3%, 내일 매도 기준가 2,531원, 만료까지 6일).", "20일선을 기다리는 관심종목은 없습니다.", "오늘 시장경보 종목은 33개이고, 후보 37종목을 점검했습니다."]};
+const fmt = n => n == null ? "-" : Number(n).toLocaleString("ko-KR");
+const pct = n => n == null ? "-" : `<span class="${n >= 0 ? "pos" : "neg"}">${n > 0 ? "+" : ""}${n}%</span>`;
+const items = D.items || [];
+const by = s => items.filter(x => x.status === s);
+const newS = by("new_signal"), sig = by("signal"), watch = by("watch"), ended = by("ended_today");
+
+document.getElementById("meta").textContent =
+  `기준일 ${D.asof || "-"} · 생성 ${D.generated_at} · 점검 종목 ${D.scanned}개${D.mode ? " · " + D.mode : ""}`;
+const h = document.getElementById("health");
+const bad = (D.warnings || []).length > 0;
+h.className = "health " + (bad ? "bad" : "ok");
+h.textContent = bad ? "확인 필요: " + D.warnings.join(" / ") : "데이터 정상";
+
+document.getElementById("brief").innerHTML = (D.briefing || []).map(t => `<p>${t}</p>`).join("");
+const tile = (n, l, hl) => `<div class="tile${hl ? " hl" : ""}"><div class="n">${n}</div><div class="l">${l}</div></div>`;
+document.getElementById("tiles").innerHTML =
+  tile(newS.length, "오늘 신규 알림", newS.length > 0) + tile(sig.length, "매매 준비 진행 중") +
+  tile(watch.length, "관심종목") + tile(ended.length, "오늘 해제") + tile((D.warned_today || []).length, "오늘 시장경보 종목");
+
+function drawChart(el, c) {
+  if (!window.LightweightCharts) { el.innerHTML = '<div class="empty">차트 라이브러리를 불러오지 못했습니다 (인터넷 연결 확인)</div>'; return; }
+  const chart = LightweightCharts.createChart(el, {
+    autoSize: true, layout: { background: { color: "#161a23" }, textColor: "#9aa1ad" },
+    grid: { vertLines: { color: "#1f2430" }, horzLines: { color: "#1f2430" } },
+    rightPriceScale: { borderColor: "#262b36" }, timeScale: { borderColor: "#262b36" },
+    localization: { priceFormatter: p => Math.round(p).toLocaleString("ko-KR") } });
+  const cs = chart.addCandlestickSeries({ upColor: "#26a69a", downColor: "#ef5350", borderVisible: false,
+    wickUpColor: "#26a69a", wickDownColor: "#ef5350" });
+  cs.setData(c.bars.map(b => ({ time: b[0], open: b[1], high: b[2], low: b[3], close: b[4] })));
+  const ma = chart.addLineSeries({ color: "#f5c542", lineWidth: 2, priceLineVisible: false, lastValueVisible: true, title: "20일선" });
+  ma.setData(c.ma.map(m => ({ time: m[0], value: m[1] })));
+  const mk = (c.markers || []).slice().sort((a, b) => a.time < b.time ? -1 : 1)
+    .map(m => ({ time: m.time, position: m.pos, color: m.color, shape: m.shape, text: m.text }));
+  cs.setMarkers(mk);
+  chart.timeScale().fitContent();
+}
+
+function card(x, isNew) {
+  const id = "ch-" + x.code + "-" + x.status;
+  return `<div class="card${isNew ? " new" : ""}">
+    <div class="ct"><span class="nm">${x.name}</span><span class="cd">${x.code} · ${x.market}</span>
+      ${x.warn_now ? `<span class="badge w">${x.warn_now}</span>` : ""}
+      <span class="badge s">알림 ${x.signal_date}</span></div>
+    <div class="facts">
+      <div><span>알림 종가 / 20일선</span>${fmt(x.signal_close)} / ${fmt(x.signal_ma)}</div>
+      <div><span>알림 시점 고점(고가) 대비</span>${pct(x.signal_from_peak_pct)}</div>
+      <div><span>현재가 (${x.last_date})</span>${fmt(x.close)}</div>
+      <div><span>알림 후 등락</span>${pct(x.since_signal_pct)}</div>
+      <div><span>현재 20일선 / 거리</span>${fmt(x.ma20)} / ${pct(x.gap_to_ma_pct)}</div>
+      <div><span>고점 (고가)</span>${fmt(x.peak_high)} (${x.peak_date})</div>
+      <div><span>편입 (고가 상승률)</span>${x.entry_date} (+${x.entry_rise_pct}%)</div>
+      <div><span>내일 매도 기준가 (20일선 돌파)</span>${fmt(x.exit_level_next)} / ${pct(x.exit_level_gap_pct)}</div>
+      <div><span>기간 만료까지</span>${x.days_left}영업일</div>
+    </div>
+    <div class="chart" id="${id}"></div></div>`;
+}
+
+function renderCards(list, elId, cntId, isNew, emptyMsg) {
+  document.getElementById(cntId).textContent = list.length ? list.length + "개" : "";
+  const el = document.getElementById(elId);
+  if (!list.length) { el.innerHTML = `<div class="empty">${emptyMsg}</div>`; return; }
+  el.innerHTML = list.map(x => card(x, isNew)).join("");
+  list.forEach(x => drawChart(document.getElementById("ch-" + x.code + "-" + x.status), x.chart));
+}
+renderCards(newS, "new", "c-new", true, "오늘 새로 뜬 알림이 없습니다.");
+renderCards(sig, "sig", "c-sig", false, "진행 중인 종목이 없습니다.");
+
+function renderTable(list, elId, cntId, cols, emptyMsg) {
+  document.getElementById(cntId).textContent = list.length ? list.length + "개" : "";
+  const el = document.getElementById(elId);
+  if (!list.length) { el.innerHTML = `<div class="empty">${emptyMsg}</div>`; return; }
+  const head = "<tr>" + cols.map(c => `<th>${c[0]}</th>`).join("") + "</tr>";
+  const body = list.map((x, i) => `<tr class="clk" data-i="${i}">` + cols.map(c => `<td>${c[1](x)}</td>`).join("") +
+    `</tr><tr class="chartrow" id="${elId}-r${i}" style="display:none"><td colspan="${cols.length}"><div class="chart" id="${elId}-c${i}"></div></td></tr>`).join("");
+  el.innerHTML = `<table>${head}${body}</table>`;
+  el.querySelectorAll("tr.clk").forEach(tr => tr.addEventListener("click", () => {
+    const i = tr.dataset.i, row = document.getElementById(`${elId}-r${i}`);
+    const open = row.style.display === "none"; row.style.display = open ? "" : "none";
+    const c = document.getElementById(`${elId}-c${i}`);
+    if (open && !c.dataset.done) { drawChart(c, list[i].chart); c.dataset.done = 1; }
+  }));
+}
+const watchSorted = watch.slice().sort((a, b) => a.gap_to_ma_pct - b.gap_to_ma_pct);
+renderTable(watchSorted, "watch", "c-watch", [
+  ["종목", x => `<b>${x.name}</b> <span class="cd">${x.code}</span>${x.warn_now ? ` <span class="badge w">${x.warn_now}</span>` : ""}`],
+  ["20일선까지", x => pct(x.gap_to_ma_pct)],
+  ["현재가", x => fmt(x.close)], ["20일선", x => fmt(x.ma20)],
+  ["고점(고가) 대비", x => pct(x.from_peak_pct)], ["편입일", x => x.entry_date],
+  ["상승률", x => "+" + x.entry_rise_pct + "%"], ["남은 기간", x => x.days_left + "일"],
+], "관심종목이 없습니다.");
+const reason = { rebreak: "20일선 돌파(장중)", expired: "기간 만료(알림 없음)", timeout: "기간 만료(알림 후)" };
+renderTable(ended, "end", "c-end", [
+  ["종목", x => `<b>${x.name}</b> <span class="cd">${x.code}</span>`],
+  ["사유", x => reason[x.end_reason] || x.end_reason],
+  ["알림일", x => x.signal_date || "-"], ["알림 종가", x => fmt(x.signal_close)],
+  ["추정 매도가", x => fmt(x.end_price)],
+  ["알림 대비", x => x.signal_close ? pct(Math.round((x.end_price / x.signal_close - 1) * 1000) / 10) : "-"],
+], "오늘 해제된 종목이 없습니다.");
+
+const wl = D.warned_today || [];
+document.getElementById("c-warn").textContent = wl.length ? wl.length + "개" : "";
+document.getElementById("warn").innerHTML = wl.length
+  ? wl.map(w => `<span class="chip"><b>${w.name}</b> ${w.code}<i>${w.label}</i></span>`).join("")
+  : '<div class="empty">오늘 시장경보 종목이 없습니다.</div>';
+
+const errs = D.errors || [];
+document.getElementById("errs").innerHTML = errs.length
+  ? `<p>데이터 오류 ${errs.length}건</p><ul>` + errs.slice(0, 50).map(e => `<li>${e.name} ${e.code}: ${e.error}</li>`).join("") + "</ul>"
+  : "<p>데이터 오류 없음</p>";
+</script>
+</body>
+</html>
